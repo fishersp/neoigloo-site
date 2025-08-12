@@ -1,22 +1,22 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-
-export const revalidate = 0; // чтобы страница не кэшировалась CDN
+import Image from 'next/image';
 
 // ==== НАСТРОЙКИ ====
-const YM_ID = 12345678; // <— замени на ID счётчика Метрики (если используешь цели)
+const YM_ID = 12345678; // ← замени на ID счётчика Метрики
 const TELEGRAM_URL = 'https://t.me/whatuknow';
-const WHATSAPP_NUMBER = '79096787222'; // +7 909 678 7222 без плюса и пробелов
+const WHATSAPP_NUMBER = '79096787222'; // +7 909 678 7222 без плюса/пробелов
 const MAIN_SITE_URL = 'https://Neoigloo.one';
 // ===================
 
+// Типы
 type Plan = {
   id: '20' | '30' | '40';
   title: string;
   size: number;
   basePrice: number;
-  img: string;
+  img: string; // путь из /public (например, /house20.jpg)
 };
 
 type Addon = {
@@ -24,6 +24,13 @@ type Addon = {
   title: string;
   price: number;
 };
+
+// Глобальная декларация ym без any
+declare global {
+  interface Window {
+    ym?: (id: number, method: 'init' | 'hit' | 'reachGoal' | string, ...rest: unknown[]) => void;
+  }
+}
 
 const PLANS: Plan[] = [
   { id: '20', title: 'Дом 20 м²', size: 20, basePrice: 350_000, img: '/house20.jpg' },
@@ -37,11 +44,11 @@ const ADDONS: Addon[] = [
   { id: 'assembly', title: 'Доставка и монтаж', price: 80_000 },
 ];
 
-const fmt = (n: number) => new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
+const fmt = (n: number) => `${new Intl.NumberFormat('ru-RU').format(n)} ₽`;
 
 const ymGoal = (goal: string) => {
-  if (typeof window !== 'undefined' && (window as any).ym) {
-    (window as any).ym(YM_ID, 'reachGoal', goal);
+  if (typeof window !== 'undefined' && typeof window.ym === 'function') {
+    window.ym(YM_ID, 'reachGoal', goal);
   }
 };
 
@@ -90,7 +97,7 @@ export default function HomePage() {
                     key={plan.id}
                     onClick={() => {
                       setSelected(plan);
-                      ymGoal('calc_click'); // опционально, если цель создана
+                      ymGoal('calc_click'); // если добавлена цель в Метрике
                     }}
                     className={`rounded-xl border p-4 text-left transition
                       ${active ? 'border-sky-500 ring-2 ring-sky-200 bg-white' : 'border-gray-200 hover:border-gray-300'}
@@ -136,10 +143,13 @@ export default function HomePage() {
           {/* Превью и CTA */}
           <section className="bg-gray-50 rounded-2xl shadow-sm p-5">
             <div className="rounded-xl overflow-hidden border bg-white">
-              <img
+              <Image
                 src={selected.img}
                 alt={selected.title}
+                width={1200}
+                height={600}
                 className="w-full h-72 object-cover"
+                priority
               />
             </div>
 
@@ -190,7 +200,7 @@ export default function HomePage() {
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-gray-700"
-            title="Открыть официальный сайт Neoigloo.one"
+            title="Официальный сайт Neoigloo.one"
           >
             Официальный сайт: Neoigloo.one
           </a>
