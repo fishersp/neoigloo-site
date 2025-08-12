@@ -2,6 +2,15 @@
 
 import { useMemo, useState } from 'react';
 
+export const revalidate = 0; // чтобы страница не кэшировалась CDN
+
+// ==== НАСТРОЙКИ ====
+const YM_ID = 12345678; // <— замени на ID счётчика Метрики (если используешь цели)
+const TELEGRAM_URL = 'https://t.me/whatuknow';
+const WHATSAPP_NUMBER = '79096787222'; // +7 909 678 7222 без плюса и пробелов
+const MAIN_SITE_URL = 'https://Neoigloo.one';
+// ===================
+
 type Plan = {
   id: '20' | '30' | '40';
   title: string;
@@ -17,9 +26,9 @@ type Addon = {
 };
 
 const PLANS: Plan[] = [
-  { id: '20', title: 'Купол 20 м²', size: 20, basePrice: 350_000, img: '/house20.jpg' },
-  { id: '30', title: 'Купол 30 м²', size: 30, basePrice: 490_000, img: '/house30.jpg' },
-  { id: '40', title: 'Купол 40 м²', size: 40, basePrice: 620_000, img: '/house40.jpg' },
+  { id: '20', title: 'Дом 20 м²', size: 20, basePrice: 350_000, img: '/house20.jpg' },
+  { id: '30', title: 'Дом 30 м²', size: 30, basePrice: 490_000, img: '/house30.jpg' },
+  { id: '40', title: 'Дом 40 м²', size: 40, basePrice: 620_000, img: '/house40.jpg' },
 ];
 
 const ADDONS: Addon[] = [
@@ -29,6 +38,12 @@ const ADDONS: Addon[] = [
 ];
 
 const fmt = (n: number) => new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
+
+const ymGoal = (goal: string) => {
+  if (typeof window !== 'undefined' && (window as any).ym) {
+    (window as any).ym(YM_ID, 'reachGoal', goal);
+  }
+};
 
 export default function HomePage() {
   const [selected, setSelected] = useState<Plan>(PLANS[0]);
@@ -44,11 +59,9 @@ export default function HomePage() {
     return sum;
   }, [selected, addons]);
 
-  // WhatsApp: телефон в международном формате без пробелов/знаков
-  const waNumber = '79096787222';
   const waLink = useMemo(() => {
     const text = `Здравствуйте! Хочу дом Neoigloo ${selected.size} м². Итоговая цена: ${fmt(total)}.`;
-    return `https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`;
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
   }, [selected.size, total]);
 
   return (
@@ -56,7 +69,7 @@ export default function HomePage() {
       {/* Hero */}
       <header className="container mx-auto px-4 pt-14 pb-8 text-center">
         <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-          Купольные беседки Neoigloo
+          Купольные дома Neoigloo
         </h1>
         <p className="mt-3 text-gray-500">
           Тёплые, стильные и быстрые в монтаже. Выберите размер и получите цену.
@@ -66,7 +79,7 @@ export default function HomePage() {
       {/* Calculator */}
       <main className="container mx-auto px-4 pb-20">
         <div className="grid lg:grid-cols-2 gap-8 items-start">
-          {/* Варианты */}
+          {/* Варианты и допы */}
           <section className="bg-gray-50 rounded-2xl shadow-sm p-5">
             <h2 className="text-xl font-semibold mb-4">1. Выберите вариант</h2>
             <div className="grid sm:grid-cols-3 gap-3">
@@ -75,7 +88,10 @@ export default function HomePage() {
                 return (
                   <button
                     key={plan.id}
-                    onClick={() => setSelected(plan)}
+                    onClick={() => {
+                      setSelected(plan);
+                      ymGoal('calc_click'); // опционально, если цель создана
+                    }}
                     className={`rounded-xl border p-4 text-left transition
                       ${active ? 'border-sky-500 ring-2 ring-sky-200 bg-white' : 'border-gray-200 hover:border-gray-300'}
                     `}
@@ -95,9 +111,10 @@ export default function HomePage() {
                     type="checkbox"
                     className="h-5 w-5 accent-sky-500"
                     checked={addons[a.id]}
-                    onChange={(e) =>
-                      setAddons((prev) => ({ ...prev, [a.id]: e.target.checked }))
-                    }
+                    onChange={(e) => {
+                      setAddons((prev) => ({ ...prev, [a.id]: e.target.checked }));
+                      ymGoal('calc_click'); // опционально
+                    }}
                   />
                   <span className="flex-1">{a.title}</span>
                   <span className="text-gray-500">+ {fmt(a.price)}</span>
@@ -133,21 +150,24 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Две кнопки: Telegram + WhatsApp */}
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Telegram */}
               <a
-                href="https://t.me/whatuknow"
+                href={TELEGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => ymGoal('tg_click')}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-sky-600 text-white px-5 py-3 text-lg font-semibold shadow hover:bg-sky-700 transition"
               >
                 ✈️ Обсудить в Telegram
               </a>
 
+              {/* WhatsApp */}
               <a
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => ymGoal('wa_click')}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 text-white px-5 py-3 text-lg font-semibold shadow hover:bg-green-700 transition"
               >
                 💬 Написать в WhatsApp
@@ -165,7 +185,15 @@ export default function HomePage() {
       <footer className="border-t">
         <div className="container mx-auto px-4 py-6 text-sm text-gray-500 flex items-center justify-between">
           <span>© {new Date().getFullYear()} Neoigloo</span>
-          <span>Срок производства от 14 дней</span>
+          <a
+            href={MAIN_SITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-gray-700"
+            title="Открыть официальный сайт Neoigloo.one"
+          >
+            Официальный сайт: Neoigloo.one
+          </a>
         </div>
       </footer>
     </div>
