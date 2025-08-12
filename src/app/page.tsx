@@ -44,6 +44,13 @@ export default function HomePage() {
     return sum;
   }, [selected, addons]);
 
+  // WhatsApp: телефон в международном формате без пробелов/знаков
+  const waNumber = '79096787222';
+  const waLink = useMemo(() => {
+    const text = `Здравствуйте! Хочу дом Neoigloo ${selected.size} м². Итоговая цена: ${fmt(total)}.`;
+    return `https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`;
+  }, [selected.size, total]);
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {/* Hero */}
@@ -112,7 +119,6 @@ export default function HomePage() {
           {/* Превью и CTA */}
           <section className="bg-gray-50 rounded-2xl shadow-sm p-5">
             <div className="rounded-xl overflow-hidden border bg-white">
-              {/* можно заменить на <Image>, но обычный <img> надёжнее без доп. настроек */}
               <img
                 src={selected.img}
                 alt={selected.title}
@@ -127,17 +133,29 @@ export default function HomePage() {
               </p>
             </div>
 
-            <a
-              href="https://t.me/whatuknow"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-sky-600 text-white px-5 py-3 text-lg font-semibold shadow hover:bg-sky-700 transition"
-            >
-              ✈️ Обсудить в Telegram
-            </a>
+            {/* Две кнопки: Telegram + WhatsApp */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <a
+                href="https://t.me/whatuknow"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-sky-600 text-white px-5 py-3 text-lg font-semibold shadow hover:bg-sky-700 transition"
+              >
+                ✈️ Обсудить в Telegram
+              </a>
+
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 text-white px-5 py-3 text-lg font-semibold shadow hover:bg-green-700 transition"
+              >
+                💬 Написать в WhatsApp
+              </a>
+            </div>
 
             <div className="mt-3 text-xs text-gray-400">
-              Нажимая кнопку, вы переходите к диалогу в Telegram.
+              Нажимая кнопки, вы переходите к диалогу в Telegram / WhatsApp.
             </div>
           </section>
         </div>
