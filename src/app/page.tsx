@@ -56,7 +56,7 @@ export default function HomePage() {
       {/* Hero */}
       <header className="container mx-auto px-4 pt-14 pb-8 text-center">
         <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-          Купольные дома Neoigloo
+          Купольные беседки (капсулы) Neoigloo
         </h1>
         <p className="mt-3 text-gray-500">
           Тёплые, стильные и быстрые в монтаже. Выберите размер и получите цену.
