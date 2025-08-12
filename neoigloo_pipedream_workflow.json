@@ -1,0 +1,23 @@
+{
+  "name": "NeoIgloo Telegram Webhook",
+  "triggers": [
+    {
+      "name": "trigger",
+      "type": "http",
+      "settings": {}
+    }
+  ],
+  "steps": [
+    {
+      "name": "send_message",
+      "type": "action",
+      "app": "telegram_bot_api",
+      "action": "sendMessage",
+      "params": {
+        "chat_id": "<ВСТАВЬ_ТВОЙ_CHAT_ID>",
+        "text": "Новая заявка с сайта NeoIgloo\nТелефон: {{steps.trigger.event.body.phone}}\nДом: {{steps.trigger.event.body.size}} м²\nЦена: {{steps.trigger.event.body.price}} ₽",
+        "token": "<ВСТАВЬ_ТВОЙ_BOT_TOKEN>"
+      }
+    }
+  ]
+}
