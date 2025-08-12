@@ -17,9 +17,9 @@ type Addon = {
 };
 
 const PLANS: Plan[] = [
-  { id: '20', title: 'Беседка 20 м²', size: 20, basePrice: 350_000, img: '/house20.jpg' },
-  { id: '30', title: 'Беседка 30 м²', size: 30, basePrice: 490_000, img: '/house30.jpg' },
-  { id: '40', title: 'Беседка 40 м²', size: 40, basePrice: 620_000, img: '/house40.jpg' },
+  { id: '20', title: 'Купол 20 м²', size: 20, basePrice: 350_000, img: '/house20.jpg' },
+  { id: '30', title: 'Купол 30 м²', size: 30, basePrice: 490_000, img: '/house30.jpg' },
+  { id: '40', title: 'Купол 40 м²', size: 40, basePrice: 620_000, img: '/house40.jpg' },
 ];
 
 const ADDONS: Addon[] = [
