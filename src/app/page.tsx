@@ -1,210 +1,178 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import YandexMetrica from './YandexMetrica'; // компонент со скриптом Метрики
 
-// ==== НАСТРОЙКИ ====
-const YM_ID = 12345678; // ← замени на ID счётчика Метрики
-const TELEGRAM_URL = 'https://t.me/whatuknow';
-const WHATSAPP_NUMBER = '79096787222'; // +7 909 678 7222 без плюса/пробелов
-const MAIN_SITE_URL = 'https://Neoigloo.one';
-// ===================
+// ID счётчика Метрики (из интерфейса: 103721710)
+const METRIKA_ID = 103721710;
 
-// Типы
-type Plan = {
-  id: '20' | '30' | '40';
-  title: string;
-  size: number;
-  basePrice: number;
-  img: string; // путь из /public (например, /house20.jpg)
-};
+type SizeOption = 20 | 30 | 40;
 
-type Addon = {
-  id: 'insulation' | 'terrace' | 'assembly';
-  title: string;
-  price: number;
-};
-
-// Глобальная декларация ym без any
-declare global {
-  interface Window {
-    ym?: (id: number, method: 'init' | 'hit' | 'reachGoal' | string, ...rest: unknown[]) => void;
-  }
-}
-
-const PLANS: Plan[] = [
-  { id: '20', title: 'Купол 20 м²', size: 20, basePrice: 350_000, img: '/house20.jpg' },
-  { id: '30', title: 'Купол 30 м²', size: 30, basePrice: 490_000, img: '/house30.jpg' },
-  { id: '40', title: 'Купол 40 м²', size: 40, basePrice: 620_000, img: '/house40.jpg' },
-];
-
-const ADDONS: Addon[] = [
-  { id: 'insulation', title: 'Зимнее утепление', price: 60_000 },
-  { id: 'terrace', title: 'Терраса 10 м²', price: 90_000 },
-  { id: 'assembly', title: 'Доставка и монтаж', price: 80_000 },
-];
-
-const fmt = (n: number) => `${new Intl.NumberFormat('ru-RU').format(n)} ₽`;
-
-const ymGoal = (goal: string) => {
-  if (typeof window !== 'undefined' && typeof window.ym === 'function') {
-    window.ym(YM_ID, 'reachGoal', goal);
-  }
+const PRICES: Record<SizeOption, number> = {
+  20: 350_000,
+  30: 490_000,
+  40: 620_000,
 };
 
 export default function HomePage() {
-  const [selected, setSelected] = useState<Plan>(PLANS[0]);
-  const [addons, setAddons] = useState<Record<Addon['id'], boolean>>({
-    insulation: false,
-    terrace: false,
-    assembly: false,
-  });
+  const [size, setSize] = useState<SizeOption>(20);
+  const [price, setPrice] = useState<number>(PRICES[20]);
+  const [phone, setPhone] = useState<string>('+7 (');
 
-  const total = useMemo(() => {
-    let sum = selected.basePrice;
-    for (const a of ADDONS) if (addons[a.id]) sum += a.price;
-    return sum;
-  }, [selected, addons]);
+  const calculatePrice = (value: SizeOption) => {
+    setSize(value);
+    setPrice(PRICES[value]);
+    reachGoal('calc_change');
+  };
 
-  const waLink = useMemo(() => {
-    const text = `Здравствуйте! Хочу дом Neoigloo ${selected.size} м². Итоговая цена: ${fmt(total)}.`;
-    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
-  }, [selected.size, total]);
+  // форматирование телефона под +7 (XXX) XXX-XX-XX
+  const formatPhone = (value: string) => {
+    let digits = value.replace(/\D/g, '');
+    if (digits.startsWith('7')) digits = digits.slice(1);
+
+    let result = '+7';
+    if (digits.length > 0) result += ' (' + digits.substring(0, 3);
+    if (digits.length >= 4) result += ') ' + digits.substring(3, 6);
+    if (digits.length >= 7) result += '-' + digits.substring(6, 8);
+    if (digits.length >= 9) result += '-' + digits.substring(8, 10);
+    return result;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhone(formatPhone(e.target.value));
+  };
+
+  const isPhoneValid = phone.replace(/\D/g, '').length === 11;
+
+  // безопасный вызов Метрики без объявления глобальных типов здесь
+  const reachGoal = (goal: string) => {
+    try {
+      (window as any).ym?.(METRIKA_ID, 'reachGoal', goal);
+    } catch {
+      /* noop */
+    }
+  };
+
+  const handleTelegram = () => {
+    reachGoal('tg_click');
+    // ваш официальный канал/контакт в ТГ
+    window.open('https://t.me/neoigloo', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleWhatsApp = () => {
+    reachGoal('wa_click');
+    const message = encodeURIComponent(
+      `Здравствуйте! Хочу заказать дом Neoigloo ${size} м² за ${price.toLocaleString()} ₽`
+    );
+    // WhatsApp на номер +7 909 678 7222
+    window.open(`https://wa.me/79096787222?text=${message}`, '_blank', 'noopener,noreferrer');
+  };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {/* Hero */}
-      <header className="container mx-auto px-4 pt-14 pb-8 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-          Купольные беседки Neoigloo
-        </h1>
-        <p className="mt-3 text-gray-500">
-          Тёплые, стильные и быстрые в монтаже. Выберите размер и получите цену.
+    <div className="min-h-screen bg-white text-gray-800">
+      {/* Скрипт Метрики + SPA-хиты */}
+      <YandexMetrica counterId={METRIKA_ID} />
+
+      <header className="p-6 text-center">
+        <h1 className="text-4xl font-bold">Купите дом в форме купола</h1>
+        <p className="text-lg text-gray-500 mt-2">
+          Комфортные и стильные дома для отдыха на природе. Подробнее на{' '}
+          <Link
+            href="https://neoigloo.one"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline"
+            onClick={() => reachGoal('site_link_click')}
+          >
+            Neoigloo.one
+          </Link>
         </p>
       </header>
 
-      {/* Calculator */}
-      <main className="container mx-auto px-4 pb-20">
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
-          {/* Варианты и допы */}
-          <section className="bg-gray-50 rounded-2xl shadow-sm p-5">
-            <h2 className="text-xl font-semibold mb-4">1. Выберите вариант</h2>
-            <div className="grid sm:grid-cols-3 gap-3">
-              {PLANS.map((plan) => {
-                const active = plan.id === selected.id;
-                return (
-                  <button
-                    key={plan.id}
-                    onClick={() => {
-                      setSelected(plan);
-                      ymGoal('calc_click'); // если добавлена цель в Метрике
-                    }}
-                    className={`rounded-xl border p-4 text-left transition
-                      ${active ? 'border-sky-500 ring-2 ring-sky-200 bg-white' : 'border-gray-200 hover:border-gray-300'}
-                    `}
-                  >
-                    <div className="text-lg font-semibold">{plan.title}</div>
-                    <div className="text-sm text-gray-500 mt-1">от {fmt(plan.basePrice)}</div>
-                  </button>
-                );
-              })}
-            </div>
+      <main className="p-6 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Калькулятор */}
+        <section className="bg-gray-50 rounded-xl shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-4">Калькулятор цены</h2>
 
-            <h2 className="text-xl font-semibold mt-6 mb-3">2. Дополнительно</h2>
-            <div className="space-y-2">
-              {ADDONS.map((a) => (
-                <label key={a.id} className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-5 w-5 accent-sky-500"
-                    checked={addons[a.id]}
-                    onChange={(e) => {
-                      setAddons((prev) => ({ ...prev, [a.id]: e.target.checked }));
-                      ymGoal('calc_click'); // опционально
-                    }}
-                  />
-                  <span className="flex-1">{a.title}</span>
-                  <span className="text-gray-500">+ {fmt(a.price)}</span>
-                </label>
-              ))}
-            </div>
+          <label className="block text-sm text-gray-600 mb-2">Площадь</label>
+          <select
+            className="border p-2 rounded w-full"
+            value={size}
+            onChange={(e) => calculatePrice(Number(e.target.value) as SizeOption)}
+          >
+            <option value={20}>Дом 20 м²</option>
+            <option value={30}>Дом 30 м²</option>
+            <option value={40}>Дом 40 м²</option>
+          </select>
 
-            <div className="mt-6 flex items-center justify-between rounded-xl bg-white p-4 border">
-              <span className="text-lg">Итого:</span>
-              <strong className="text-2xl font-bold">{fmt(total)}</strong>
-            </div>
+          <p className="text-xl mt-4">
+            Цена: <span className="font-semibold">{price.toLocaleString()} ₽</span>
+          </p>
 
-            <div className="mt-4 text-sm text-gray-500">
-              * Цена ориентировочная. Окончательная стоимость зависит от фундамента,
-              участка и комплектации.
-            </div>
-          </section>
+          <div className="mt-6">
+            <Image
+              src={`/house${size}.jpg`}
+              alt={`Дом ${size} м²`}
+              width={800}
+              height={450}
+              className="rounded-lg shadow-md w-full h-auto"
+              priority
+            />
+          </div>
+        </section>
 
-          {/* Превью и CTA */}
-          <section className="bg-gray-50 rounded-2xl shadow-sm p-5">
-            <div className="rounded-xl overflow-hidden border bg-white">
-              <Image
-                src={selected.img}
-                alt={selected.title}
-                width={1200}
-                height={600}
-                className="w-full h-72 object-cover"
-                priority
-              />
-            </div>
+        {/* Форма и кнопки */}
+        <section className="rounded-xl shadow-md p-6 border">
+          <h2 className="text-2xl font-bold mb-4 text-center">Оставить заявку</h2>
 
-            <div className="mt-5">
-              <h3 className="text-lg font-semibold">{selected.title}</h3>
-              <p className="text-gray-500">
-                Базовая цена: {fmt(selected.basePrice)} • Текущая: {fmt(total)}
-              </p>
-            </div>
+          <div className="flex flex-col gap-3 max-w-md mx-auto">
+            <input type="text" placeholder="Ваше имя" className="border p-2 rounded" />
+            <input
+              type="tel"
+              value={phone}
+              onChange={handlePhoneChange}
+              className="border p-2 rounded"
+              placeholder="+7 (___) ___-__-__"
+            />
 
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Telegram */}
-              <a
-                href={TELEGRAM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => ymGoal('tg_click')}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-sky-600 text-white px-5 py-3 text-lg font-semibold shadow hover:bg-sky-700 transition"
-              >
-                ✈️ Обсудить в Telegram
-              </a>
+            <button
+              onClick={handleTelegram}
+              disabled={!isPhoneValid}
+              className={`px-4 py-2 rounded text-white transition ${isPhoneValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+                }`}
+            >
+              ✈️ Написать в Telegram
+            </button>
 
-              {/* WhatsApp */}
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => ymGoal('wa_click')}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 text-white px-5 py-3 text-lg font-semibold shadow hover:bg-green-700 transition"
-              >
-                💬 Написать в WhatsApp
-              </a>
-            </div>
+            <button
+              onClick={handleWhatsApp}
+              disabled={!isPhoneValid}
+              className={`px-4 py-2 rounded text-white transition ${isPhoneValid ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
+                }`}
+            >
+              💬 Написать в WhatsApp
+            </button>
 
-            <div className="mt-3 text-xs text-gray-400">
-              Нажимая кнопки, вы переходите к диалогу в Telegram / WhatsApp.
-            </div>
-          </section>
-        </div>
+            <p className="text-xs text-gray-500 mt-1 text-center">
+              Нажимая на кнопку, вы соглашаетесь с обработкой персональных данных.
+            </p>
+          </div>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t">
-        <div className="container mx-auto px-4 py-6 text-sm text-gray-500 flex items-center justify-between">
-          <span>© {new Date().getFullYear()} Neoigloo</span>
-          <a
-            href={MAIN_SITE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-gray-700"
-            title="Официальный сайт Neoigloo.one"
-          >
-            Официальный сайт: Neoigloo.one
-          </a>
-        </div>
+      <footer className="p-6 text-center text-sm text-gray-500">
+        © {new Date().getFullYear()} Neoigloo •{' '}
+        <Link
+          href="https://neoigloo.one"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+          onClick={() => reachGoal('site_link_click_footer')}
+        >
+          Neoigloo.one
+        </Link>
       </footer>
     </div>
   );
